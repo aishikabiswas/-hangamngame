@@ -28,23 +28,16 @@ Tkinter (for GUI development)
 
 Random Library (for random word selection)
 
-How to Run the Project
-
-Clone the repository:
-
-git clone https://github.com/yourusername/colorful-hangman.git
-
-Navigate to the project directory:
-
-cd colorful-hangman
-
-Run the application:
-
-python hangman.py
-
 Screenshots
 
-Include screenshots showcasing the game interface, hangman drawings, and win/lose screens.
+![Start Screen](screenshots/start_screen.png)  
+_Game start screen with empty scaffold_
+
+![Partial Hangman](screenshots/partial_hangman.png)  
+_Hangman partially drawn after incorrect guesses_
+
+![Game Over](screenshots/game_over.png)  
+_Game over screen after six incorrect guesses_
 
 How It Works
 
