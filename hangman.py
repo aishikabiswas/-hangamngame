@@ -1,186 +1,132 @@
-#########################################################
-## File Name: hangman.py                               ##
-## Description: Starter for Hangman project - ICS3U    ##
-#########################################################
-import pygame
-import random
-
-pygame.init()
-winHeight = 480
-winWidth = 700
-win=pygame.display.set_mode((winWidth,winHeight))
-#---------------------------------------#
-# initialize global variables/constants #
-#---------------------------------------#
-BLACK = (0,0, 0)
-WHITE = (255,255,255)
-RED = (255,0, 0)
-GREEN = (0,255,0)
-BLUE = (0,0,255)
-LIGHT_BLUE = (102,255,255)
-
-btn_font = pygame.font.SysFont("arial", 20)
-guess_font = pygame.font.SysFont("monospace", 24)
-lost_font = pygame.font.SysFont('arial', 45)
-word = ''
-buttons = []
-guessed = []
-hangmanPics = [pygame.image.load('hangman0.png'), pygame.image.load('hangman1.png'), pygame.image.load('hangman2.png'), pygame.image.load('hangman3.png'), pygame.image.load('hangman4.png'), pygame.image.load('hangman5.png'), pygame.image.load('hangman6.png')]
-
-limbs = 0
+import tkinter as tk
+from tkinter import messagebox
+import math
 
 
-def redraw_game_window():
-    global guessed
-    global hangmanPics
-    global limbs
-    win.fill(GREEN)
-    # Buttons
-    for i in range(len(buttons)):
-        if buttons[i][4]:
-            pygame.draw.circle(win, BLACK, (buttons[i][1], buttons[i][2]), buttons[i][3])
-            pygame.draw.circle(win, buttons[i][0], (buttons[i][1], buttons[i][2]), buttons[i][3] - 2
-                               )
-            label = btn_font.render(chr(buttons[i][5]), 1, BLACK)
-            win.blit(label, (buttons[i][1] - (label.get_width() / 2), buttons[i][2] - (label.get_height() / 2)))
+class ScientificCalculator:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Scientific Calculator")
+        self.root.geometry("500x700")
+        self.root.resizable(False, False)
+        self.root.configure(bg="#2E2E2E")
 
-    spaced = spacedOut(word, guessed)
-    label1 = guess_font.render(spaced, 1, BLACK)
-    rect = label1.get_rect()
-    length = rect[2]
-    
-    win.blit(label1,(winWidth/2 - length/2, 400))
+        self.expression = ""
+        self.memory = 0
+        self.input_var = tk.StringVar()
 
-    pic = hangmanPics[limbs]
-    win.blit(pic, (winWidth/2 - pic.get_width()/2 + 20, 150))
-    pygame.display.update()
+        self.create_widgets()
+        self.bind_keys()
+
+    def create_widgets(self):
+        entry = tk.Entry(self.root, textvariable=self.input_var, font=('Arial', 24), bd=10, insertwidth=2, width=14, borderwidth=4, justify='right', bg="#FFFFFF")
+        entry.grid(row=0, column=0, columnspan=5, padx=10, pady=10)
+
+        # Frame for buttons
+        button_frame = tk.Frame(self.root, bg="#2E2E2E")
+        button_frame.grid(row=1, column=0, columnspan=5)
+
+        # Button layout
+        buttons = [
+            '7', '8', '9', '/', 'sqrt',
+            '4', '5', '6', '*', 'pow',
+            '1', '2', '3', '-', 'log',
+            '0', '.', '=', '+', 'sin',
+            'cos', 'tan', '(', ')', 'C',
+            'M+', 'MR', 'MC', '!', '%'
+        ]
+
+        row_val = 0
+        col_val = 0
+
+        for button in buttons:
+            btn = tk.Button(button_frame, text=button, padx=20, pady=20, font=('Arial', 18), command=lambda b=button: self.on_button_click(b), bg="#4CAF50", fg="#FFFFFF", activebackground="#45A049")
+            btn.grid(row=row_val, column=col_val, sticky="nsew", padx=5, pady=5)
+            col_val += 1
+            if col_val > 4:
+                col_val = 0
+                row_val += 1
+
+        for i in range(5):
+            button_frame.grid_columnconfigure(i, weight=1)
+        for i in range(5):
+            button_frame.grid_rowconfigure(i, weight=1)
+
+    def bind_keys(self):
+        self.root.bind('<Key>', self.key_press)
+
+    def key_press(self, event):
+        key = event.char
+        if key in '0123456789+-*/.()':
+            self.on_button_click(key)
+        elif key == 'Enter':
+            self.on_button_click('=')
+        elif key == '\x08': 
+            self.on_button_click('C')
+
+    def on_button_click(self, char):
+        if char == '=':
+            try:
+                self.expression = self.evaluate_expression(self.expression)
+                self.input_var.set(self.expression)
+                self.expression = ""  
+            except Exception as e:
+                messagebox.showerror("Error", "Invalid Input")
+                self.clear()
+        elif char == 'C':
+            self.clear()
+        elif char == 'M+':
+            try:
+                self.memory += float(self.input_var.get())
+            except ValueError:
+                messagebox.showerror("Error", "Invalid Input for Memory")
+        elif char == 'MR':
+            self.input_var.set(self.memory)
+        elif char == 'MC':
+            self.memory = 0
+        elif char == '!':
+            try:
+                num = int(self.input_var.get())
+                self.expression = str(math.factorial(num))
+                self.input_var.set(self.expression)
+            except Exception as e:
+                messagebox.showerror("Error", "Invalid Input for Factorial")
+                self.clear()
+        elif char == '%':
+            try:
+                self.expression = str(float(self.input_var.get()) / 100)
+                self.input_var.set(self.expression)
+            except ValueError:
+                messagebox.showerror("Error", "Invalid Input for Percentage")
+                self.clear()
+        else:
+            self.expression += str(char)
+            self.input_var.set(self.expression)
+
+    def evaluate_expression(self, expr):
+        expr = expr.replace('sqrt', 'math.sqrt')
+        expr = expr.replace('pow', '**')
+        expr = expr.replace('log', 'math.log10')
+        expr = expr.replace('sin', 'math.sin(math.radians')
+        expr = expr.replace('cos', 'math.cos(math.radians')
+        expr = expr.replace('tan', 'math.tan(math.radians')
+
+        # Add closing parentheses for trigonometric functions
+        expr = self.add_closing_parentheses(expr)
+
+        return str(eval(expr))
+
+    def add_closing_parentheses(self, expr):
+        count = expr.count('math.sin(math.radians') + expr.count('math.cos(math.radians') + expr.count('math.tan(math.radians')
+        expr += ')' * count  # Append required closing parentheses
+        return expr
+
+    def clear(self):
+        self.expression = ""
+        self.input_var.set("")
 
 
-def randomWord():
-    file = open('words.txt')
-    f = file.readlines()
-    i = random.randrange(0, len(f) - 1)
-
-    return f[i][:-1]
-
-
-def hang(guess):
-    global word
-    if guess.lower() not in word.lower():
-        return True
-    else:
-        return False
-
-
-def spacedOut(word, guessed=[]):
-    spacedWord = ''
-    guessedLetters = guessed
-    for x in range(len(word)):
-        if word[x] != ' ':
-            spacedWord += '_ '
-            for i in range(len(guessedLetters)):
-                if word[x].upper() == guessedLetters[i]:
-                    spacedWord = spacedWord[:-2]
-                    spacedWord += word[x].upper() + ' '
-        elif word[x] == ' ':
-            spacedWord += ' '
-    return spacedWord
-            
-
-def buttonHit(x, y):
-    for i in range(len(buttons)):
-        if x < buttons[i][1] + 20 and x > buttons[i][1] - 20:
-            if y < buttons[i][2] + 20 and y > buttons[i][2] - 20:
-                return buttons[i][5]
-    return None
-
-
-def end(winner=False):
-    global limbs
-    lostTxt = 'You Lost, press any key to play again...'
-    winTxt = 'WINNER!, press any key to play again...'
-    redraw_game_window()
-    pygame.time.delay(1000)
-    win.fill(GREEN)
-
-    if winner == True:
-        label = lost_font.render(winTxt, 1, BLACK)
-    else:
-        label = lost_font.render(lostTxt, 1, BLACK)
-
-    wordTxt = lost_font.render(word.upper(), 1, BLACK)
-    wordWas = lost_font.render('The phrase was: ', 1, BLACK)
-
-    win.blit(wordTxt, (winWidth/2 - wordTxt.get_width()/2, 295))
-    win.blit(wordWas, (winWidth/2 - wordWas.get_width()/2, 245))
-    win.blit(label, (winWidth / 2 - label.get_width() / 2, 140))
-    pygame.display.update()
-    again = True
-    while again:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-            if event.type == pygame.KEYDOWN:
-                again = False
-    reset()
-
-
-def reset():
-    global limbs
-    global guessed
-    global buttons
-    global word
-    for i in range(len(buttons)):
-        buttons[i][4] = True
-
-    limbs = 0
-    guessed = []
-    word = randomWord()
-
-#MAINLINE
-
-
-# Setup buttons
-increase = round(winWidth / 13)
-for i in range(26):
-    if i < 13:
-        y = 40
-        x = 25 + (increase * i)
-    else:
-        x = 25 + (increase * (i - 13))
-        y = 85
-    buttons.append([LIGHT_BLUE, x, y, 20, True, 65 + i])
-    # buttons.append([color, x_pos, y_pos, radius, visible, char])
-
-word = randomWord()
-inPlay = True
-
-while inPlay:
-    redraw_game_window()
-    pygame.time.delay(10)
-
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            inPlay = False
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE:
-                inPlay = False
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            clickPos = pygame.mouse.get_pos()
-            letter = buttonHit(clickPos[0], clickPos[1])
-            if letter != None:
-                guessed.append(chr(letter))
-                buttons[letter - 65][4] = False
-                if hang(chr(letter)):
-                    if limbs != 5:
-                        limbs += 1
-                    else:
-                        end()
-                else:
-                    print(spacedOut(word, guessed))
-                    if spacedOut(word, guessed).count('_') == 0:
-                        end(True)
-
-pygame.quit()
-
-# always quit pygame when done!
+if __name__ == "__main__":
+    root = tk.Tk()
+    calculator = ScientificCalculator(root)
+    root.mainloop()
