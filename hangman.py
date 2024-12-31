@@ -1,132 +1,116 @@
+import random
 import tkinter as tk
 from tkinter import messagebox
-import math
 
+# Word list for the game
+WORD_LIST = ["python", "programming", "hangman", "challenge", "function","keygen"]
 
-class ScientificCalculator:
+class HangmanGame:
     def __init__(self, root):
         self.root = root
-        self.root.title("Scientific Calculator")
-        self.root.geometry("500x700")
-        self.root.resizable(False, False)
-        self.root.configure(bg="#2E2E2E")
+        self.root.title("Colorful Hangman Game")
+        self.root.geometry("500x650")
+        self.root.config(bg="#ADD8E6")  # Light blue background
 
-        self.expression = ""
-        self.memory = 0
-        self.input_var = tk.StringVar()
+        # Game variables
+        self.word = random.choice(WORD_LIST)
+        self.word_display = ["_"] * len(self.word)
+        self.guessed_letters = set()
+        self.attempts_left = 6
 
-        self.create_widgets()
-        self.bind_keys()
+        # Title
+        self.label_title = tk.Label(root, text="🎨 Hangman Game 🎨", font=("Helvetica", 32, "bold"), bg="#ADD8E6", fg="#003366")
+        self.label_title.pack(pady=20)
 
-    def create_widgets(self):
-        entry = tk.Entry(self.root, textvariable=self.input_var, font=('Arial', 24), bd=10, insertwidth=2, width=14, borderwidth=4, justify='right', bg="#FFFFFF")
-        entry.grid(row=0, column=0, columnspan=5, padx=10, pady=10)
+        # Word display
+        self.label_word = tk.Label(root, text=" ".join(self.word_display), font=("Courier", 28, "bold"), bg="#ADD8E6", fg="#FFFFFF")
+        self.label_word.pack(pady=20)
 
-        # Frame for buttons
-        button_frame = tk.Frame(self.root, bg="#2E2E2E")
-        button_frame.grid(row=1, column=0, columnspan=5)
+        # Status display
+        self.label_status = tk.Label(root, text=f"Attempts Left: {self.attempts_left}", font=("Helvetica", 16), bg="#ADD8E6", fg="#FFD700")
+        self.label_status.pack(pady=10)
 
-        # Button layout
-        buttons = [
-            '7', '8', '9', '/', 'sqrt',
-            '4', '5', '6', '*', 'pow',
-            '1', '2', '3', '-', 'log',
-            '0', '.', '=', '+', 'sin',
-            'cos', 'tan', '(', ')', 'C',
-            'M+', 'MR', 'MC', '!', '%'
+        # Input and button
+        self.entry_guess = tk.Entry(root, font=("Helvetica", 18), justify="center", width=3, bg="#FFFFFF", fg="#003366")
+        self.entry_guess.pack(pady=10)
+
+        self.button_guess = tk.Button(root, text="Guess", command=self.check_guess, font=("Helvetica", 16), bg="#FF4500", fg="#FFFFFF", activebackground="#FF6347", activeforeground="#FFFFFF", relief="flat")
+        self.button_guess.pack(pady=20)
+
+        # Hangman Canvas
+        self.canvas = tk.Canvas(root, width=400, height=400, bg="#FFFFFF", highlightthickness=0)
+        self.canvas.pack(pady=20)
+
+        # Draw the initial hangman scaffold
+        self.draw_hangman()
+
+    def draw_hangman(self):
+        """Draws the hangman based on remaining attempts."""
+        self.canvas.delete("all")
+        # Scaffold
+        self.canvas.create_line(50, 350, 350, 350, fill="#8B4513", width=4)  # Base
+        self.canvas.create_line(100, 50, 100, 350, fill="#8B4513", width=4)  # Pole
+        self.canvas.create_line(100, 50, 250, 50, fill="#8B4513", width=4)   # Top bar
+        self.canvas.create_line(250, 50, 250, 100, fill="#8B4513", width=4)  # Rope
+
+        # Hangman parts
+        parts = [
+            lambda: self.canvas.create_oval(225, 100, 275, 150, outline="#FF0000", width=3, fill="#FFB6C1"),  # Head
+            lambda: self.canvas.create_line(250, 150, 250, 250, fill="#FF0000", width=3),                     # Body
+            lambda: self.canvas.create_line(250, 180, 220, 220, fill="#FF0000", width=3),                     # Left arm
+            lambda: self.canvas.create_line(250, 180, 280, 220, fill="#FF0000", width=3),                     # Right arm
+            lambda: self.canvas.create_line(250, 250, 220, 300, fill="#FF0000", width=3),                     # Left leg
+            lambda: self.canvas.create_line(250, 250, 280, 300, fill="#FF0000", width=3),                     # Right leg
         ]
 
-        row_val = 0
-        col_val = 0
+        for i in range(6 - self.attempts_left):
+            parts[i]()
 
-        for button in buttons:
-            btn = tk.Button(button_frame, text=button, padx=20, pady=20, font=('Arial', 18), command=lambda b=button: self.on_button_click(b), bg="#4CAF50", fg="#FFFFFF", activebackground="#45A049")
-            btn.grid(row=row_val, column=col_val, sticky="nsew", padx=5, pady=5)
-            col_val += 1
-            if col_val > 4:
-                col_val = 0
-                row_val += 1
+    def check_guess(self):
+        """Validates and processes the player's guess."""
+        guess = self.entry_guess.get().lower()
+        self.entry_guess.delete(0, tk.END)
 
-        for i in range(5):
-            button_frame.grid_columnconfigure(i, weight=1)
-        for i in range(5):
-            button_frame.grid_rowconfigure(i, weight=1)
+        if len(guess) != 1 or not guess.isalpha():
+            messagebox.showwarning("Invalid Input", "Please enter a single alphabetic character.")
+            return
 
-    def bind_keys(self):
-        self.root.bind('<Key>', self.key_press)
+        if guess in self.guessed_letters:
+            messagebox.showinfo("Already Guessed", f"You already guessed '{guess}'.")
+            return
 
-    def key_press(self, event):
-        key = event.char
-        if key in '0123456789+-*/.()':
-            self.on_button_click(key)
-        elif key == 'Enter':
-            self.on_button_click('=')
-        elif key == '\x08': 
-            self.on_button_click('C')
+        self.guessed_letters.add(guess)
 
-    def on_button_click(self, char):
-        if char == '=':
-            try:
-                self.expression = self.evaluate_expression(self.expression)
-                self.input_var.set(self.expression)
-                self.expression = ""  
-            except Exception as e:
-                messagebox.showerror("Error", "Invalid Input")
-                self.clear()
-        elif char == 'C':
-            self.clear()
-        elif char == 'M+':
-            try:
-                self.memory += float(self.input_var.get())
-            except ValueError:
-                messagebox.showerror("Error", "Invalid Input for Memory")
-        elif char == 'MR':
-            self.input_var.set(self.memory)
-        elif char == 'MC':
-            self.memory = 0
-        elif char == '!':
-            try:
-                num = int(self.input_var.get())
-                self.expression = str(math.factorial(num))
-                self.input_var.set(self.expression)
-            except Exception as e:
-                messagebox.showerror("Error", "Invalid Input for Factorial")
-                self.clear()
-        elif char == '%':
-            try:
-                self.expression = str(float(self.input_var.get()) / 100)
-                self.input_var.set(self.expression)
-            except ValueError:
-                messagebox.showerror("Error", "Invalid Input for Percentage")
-                self.clear()
+        if guess in self.word:
+            for i, letter in enumerate(self.word):
+                if letter == guess:
+                    self.word_display[i] = guess
+            self.label_word.config(text=" ".join(self.word_display))
+
+            if "_" not in self.word_display:
+                messagebox.showinfo("You Win!", "Congratulations! You guessed the word!")
+                self.reset_game()
         else:
-            self.expression += str(char)
-            self.input_var.set(self.expression)
+            self.attempts_left -= 1
+            self.label_status.config(text=f"Attempts Left: {self.attempts_left}")
+            self.draw_hangman()
 
-    def evaluate_expression(self, expr):
-        expr = expr.replace('sqrt', 'math.sqrt')
-        expr = expr.replace('pow', '**')
-        expr = expr.replace('log', 'math.log10')
-        expr = expr.replace('sin', 'math.sin(math.radians')
-        expr = expr.replace('cos', 'math.cos(math.radians')
-        expr = expr.replace('tan', 'math.tan(math.radians')
+            if self.attempts_left == 0:
+                messagebox.showerror("Game Over", f"You've been hanged! The word was '{self.word}'.")
+                self.reset_game()
 
-        # Add closing parentheses for trigonometric functions
-        expr = self.add_closing_parentheses(expr)
+    def reset_game(self):
+        """Resets the game for a new round."""
+        self.word = random.choice(WORD_LIST)
+        self.word_display = ["_"] * len(self.word)
+        self.guessed_letters = set()
+        self.attempts_left = 6
 
-        return str(eval(expr))
+        self.label_word.config(text=" ".join(self.word_display))
+        self.label_status.config(text=f"Attempts Left: {self.attempts_left}")
+        self.draw_hangman()
 
-    def add_closing_parentheses(self, expr):
-        count = expr.count('math.sin(math.radians') + expr.count('math.cos(math.radians') + expr.count('math.tan(math.radians')
-        expr += ')' * count  # Append required closing parentheses
-        return expr
-
-    def clear(self):
-        self.expression = ""
-        self.input_var.set("")
-
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    calculator = ScientificCalculator(root)
-    root.mainloop()
+# Main application
+root = tk.Tk()
+game = HangmanGame(root)
+root.mainloop()
